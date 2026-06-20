@@ -24,6 +24,12 @@
   --desk: #ece8df;
 
   --paper-width: calc(var(--paper-width-base) * var(--zoom));
+  --page-height: calc(var(--paper-width) * 1.414);   /* A4 portrait (roll mode) */
+
+  /* Pages mode: one page = a whole number of lines, so page cuts land
+     exactly between lines. ~A4 proportion at 27 lines. */
+  --visible-lines: 27;
+  --page-step: calc(var(--line) * var(--visible-lines));
 }
 
 * {

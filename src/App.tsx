@@ -3,15 +3,22 @@ import SelectionPopup from "./SelectionPopup";
 import "./Paper.css";
 
 type Ruling = "ruled" | "dotted" | "blank";
+type PageMode = "roll" | "pages";
 
 const RULINGS: Ruling[] = ["ruled", "dotted", "blank"];
+const PAGE_MODES: PageMode[] = ["roll", "pages"];
 const STORAGE_KEY = "paper:doc:v1";
 const TITLE_KEY = "paper:title:v1";
 const DATE_KEY = "paper:date:v1";
+const MODE_KEY = "paper:mode:v1";
 
 // Base page size at 100% — must match --paper-width-base × A4 ratio in index.css.
 const PAGE_W = 660;
 const PAGE_H = PAGE_W * 1.414;
+
+// Pages mode — must match index.css.
+const LINE_BASE = 34;
+const VISIBLE_LINES = 27;
 
 const ZOOM_MIN = 0.3;
 const ZOOM_MAX = 3;
@@ -22,9 +29,13 @@ export default function App() {
   const titleRef = useRef<HTMLDivElement>(null);
   const dateRef = useRef<HTMLDivElement>(null);
   const [ruling, setRuling] = useState<Ruling>("ruled");
+  const [pageMode, setPageMode] = useState<PageMode>("roll");
   const [zoom, setZoom] = useState(1);
   // When true, the page re-fits itself to the window on resize.
   const [fitMode, setFitMode] = useState(true);
+  // Pages mode navigation.
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Load saved content once, on mount.
   useEffect(() => {
@@ -34,12 +45,52 @@ export default function App() {
     if (savedTitle && titleRef.current) titleRef.current.innerHTML = savedTitle;
     const savedDate = localStorage.getItem(DATE_KEY);
     if (savedDate && dateRef.current) dateRef.current.innerHTML = savedDate;
+    const savedMode = localStorage.getItem(MODE_KEY);
+    if (savedMode === "roll" || savedMode === "pages") setPageMode(savedMode);
   }, []);
+
+  // Persist the page model.
+  useEffect(() => {
+    localStorage.setItem(MODE_KEY, pageMode);
+  }, [pageMode]);
 
   // Push the zoom multiplier to CSS — the whole sheet scales from this.
   useEffect(() => {
     document.documentElement.style.setProperty("--zoom", String(zoom));
   }, [zoom]);
+
+  // Push the current page index to CSS — the body translates by whole pages.
+  useEffect(() => {
+    document.documentElement.style.setProperty("--current-page", String(currentPage));
+  }, [currentPage]);
+
+  const pageStepPx = useCallback(() => VISIBLE_LINES * LINE_BASE * zoom, [zoom]);
+
+  // How many whole pages the current content spans.
+  const recountPages = useCallback(() => {
+    const el = pageRef.current;
+    if (!el) return;
+    const total = Math.max(1, Math.ceil(el.scrollHeight / pageStepPx() - 0.01));
+    setTotalPages(total);
+    setCurrentPage((p) => Math.min(p, total - 1));
+  }, [pageStepPx]);
+
+  // Jump to the page the caret is on, so typing past the bottom auto-flips.
+  const followCaret = useCallback(() => {
+    const el = pageRef.current;
+    const sel = document.getSelection();
+    if (!el || !sel || sel.rangeCount === 0) return;
+    const caret = sel.getRangeAt(0).getBoundingClientRect();
+    if (caret.height === 0 && caret.top === 0) return;
+    // Caret position in the body's own (untranslated) coordinate space.
+    const docTop = caret.top - el.getBoundingClientRect().top;
+    setCurrentPage(Math.max(0, Math.floor(docTop / pageStepPx())));
+  }, [pageStepPx]);
+
+  // Recount whenever the model or zoom changes.
+  useEffect(() => {
+    recountPages();
+  }, [recountPages, pageMode]);
 
   const fitToScreen = useCallback(() => {
     const availW = window.innerWidth - 96; // breathing room left/right
@@ -68,6 +119,11 @@ export default function App() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [fitToScreen]);
+
+  // Entering pages mode, fit the whole page to the screen.
+  useEffect(() => {
+    if (pageMode === "pages") fitToScreen();
+  }, [pageMode, fitToScreen]);
 
   // Keyboard: ⌘/Ctrl + = / - / 0
   useEffect(() => {
@@ -104,20 +160,47 @@ export default function App() {
     if (pageRef.current) localStorage.setItem(STORAGE_KEY, pageRef.current.innerHTML);
     if (titleRef.current) localStorage.setItem(TITLE_KEY, titleRef.current.innerHTML);
     if (dateRef.current) localStorage.setItem(DATE_KEY, dateRef.current.innerHTML);
+    if (pageMode === "pages") {
+      recountPages();
+      followCaret();
+    }
   };
+
+  const goToPage = useCallback(
+    (p: number) => setCurrentPage(Math.min(Math.max(0, p), totalPages - 1)),
+    [totalPages],
+  );
+
+  // Pages mode: PageUp / PageDown to flip.
+  useEffect(() => {
+    if (pageMode !== "pages") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "PageDown") {
+        e.preventDefault();
+        setCurrentPage((p) => Math.min(p + 1, totalPages - 1));
+      } else if (e.key === "PageUp") {
+        e.preventDefault();
+        setCurrentPage((p) => Math.max(p - 1, 0));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pageMode, totalPages]);
 
   return (
     <div className="desk">
       <TopBar
         ruling={ruling}
         onRuling={setRuling}
+        pageMode={pageMode}
+        onPageMode={setPageMode}
         zoom={zoom}
         onZoomIn={() => zoomBy(1.1)}
         onZoomOut={() => zoomBy(1 / 1.1)}
         onFit={fitToScreen}
       />
 
-      <div className="paper">
+      <div className="paper" data-mode={pageMode} data-page={currentPage}>
         <div className="page-meta">
           <div
             ref={titleRef}
@@ -147,6 +230,28 @@ export default function App() {
         />
       </div>
 
+      {pageMode === "pages" && (
+        <div className="pager">
+          <button
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 0}
+            title="Previous page (PageUp)"
+          >
+            ‹
+          </button>
+          <span className="pager-count">
+            {currentPage + 1} / {totalPages}
+          </span>
+          <button
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage >= totalPages - 1}
+            title="Next page (PageDown)"
+          >
+            ›
+          </button>
+        </div>
+      )}
+
       <SelectionPopup pageRef={pageRef} onAfterChange={save} />
     </div>
   );
@@ -155,6 +260,8 @@ export default function App() {
 function TopBar({
   ruling,
   onRuling,
+  pageMode,
+  onPageMode,
   zoom,
   onZoomIn,
   onZoomOut,
@@ -162,6 +269,8 @@ function TopBar({
 }: {
   ruling: Ruling;
   onRuling: (r: Ruling) => void;
+  pageMode: PageMode;
+  onPageMode: (m: PageMode) => void;
   zoom: number;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -172,6 +281,12 @@ function TopBar({
       {RULINGS.map((r) => (
         <button key={r} data-active={r === ruling} onClick={() => onRuling(r)}>
           {r}
+        </button>
+      ))}
+      <span className="edge-divider" />
+      {PAGE_MODES.map((m) => (
+        <button key={m} data-active={m === pageMode} onClick={() => onPageMode(m)}>
+          {m}
         </button>
       ))}
       <span className="edge-divider" />

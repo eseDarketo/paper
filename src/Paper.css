@@ -15,7 +15,7 @@
   position: relative;
   width: var(--paper-width);
   max-width: 100%;
-  min-height: calc(var(--paper-width) * 1.414);
+  min-height: var(--page-height);
   display: flex;
   flex-direction: column;
   background: var(--paper);
@@ -38,6 +38,24 @@
   white-space: pre-wrap;
   word-break: break-word;
   caret-color: var(--ink);
+}
+
+/* Pages mode: the sheet is a fixed-height window showing exactly one page.
+   No scrolling — the body is translated up by whole pages. Each page is an
+   exact whole number of lines (--visible-lines), so cuts land between lines. */
+.paper[data-mode="pages"] {
+  min-height: var(--page-step);
+  height: var(--page-step);
+  overflow: hidden;
+}
+
+.paper[data-mode="pages"] .page {
+  transform: translateY(calc(var(--current-page, 0) * var(--page-step) * -1));
+}
+
+/* Header only on the first page. */
+.paper[data-mode="pages"]:not([data-page="0"]) .page-meta {
+  display: none;
 }
 
 /* Metadata header: floats in the top blank band, vertically centered, OFF the
@@ -239,4 +257,50 @@
   height: 16px;
   margin: 0 4px;
   background: var(--rule);
+}
+
+/* --- Pager: page navigation, shown only in pages mode ------------------- */
+.pager {
+  position: fixed;
+  bottom: 18px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: rgba(43, 39, 34, 0.55);
+  z-index: 10;
+}
+
+.pager button {
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.pager button:hover:not(:disabled) {
+  opacity: 1;
+}
+
+.pager button:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.pager-count {
+  min-width: 48px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
