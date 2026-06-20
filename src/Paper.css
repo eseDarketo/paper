@@ -1,0 +1,162 @@
+/* The desk: full-viewport scroll surface that centers the sheet. */
+.desk {
+  min-height: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 56px 24px 240px;
+  overflow-y: auto;
+}
+
+/* The sheet: a bounded paper object, not an infinite canvas. */
+.paper {
+  width: var(--paper-width);
+  max-width: 100%;
+  background: var(--paper);
+  border-radius: 2px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 12px 32px -8px rgba(0, 0, 0, 0.18);
+}
+
+/* The writing surface. Text lives on this grid. */
+.page {
+  /* padding-top is a multiple of --line so the first baseline lands on a rule */
+  padding: calc(var(--line) * 2) 56px calc(var(--line) * 4);
+  line-height: var(--line);
+  font-size: var(--font-normal);
+  color: var(--ink);
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  caret-color: var(--ink);
+}
+
+/* --- Ruling modes ------------------------------------------------------- */
+
+/* A 1px rule sitting at the baseline within every line cell. */
+.page[data-ruling="ruled"] {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--rule) 0,
+    var(--rule) 1px,
+    transparent 1px,
+    transparent var(--line)
+  );
+  background-position: 0 var(--baseline);
+}
+
+/* Dot grid: dots sitting on the baseline, spaced horizontally. */
+.page[data-ruling="dotted"] {
+  background-image: radial-gradient(
+    var(--rule) 1.2px,
+    transparent 1.4px
+  );
+  background-size: var(--line) var(--line);
+  background-position: 0 var(--baseline);
+}
+
+.page[data-ruling="blank"] {
+  background-image: none;
+}
+
+/* --- Text styles (both exactly one line tall) --------------------------- */
+
+.page [data-style="bigger"] {
+  font-size: var(--font-bigger);
+  /* line-height:0 stops the larger glyphs from resizing the shared line box,
+     so normal text on the same line keeps its position and the grid holds. */
+  line-height: 0;
+  /* Align bigger text's baseline with the rule like the normal style. */
+  position: relative;
+  top: 0px;
+}
+
+/* --- Selection popup: the only way to style text ------------------------ */
+.sel-popup {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: #2b2722;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.35);
+  z-index: 10;
+  animation: sel-pop 120ms ease;
+}
+
+@keyframes sel-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -90%);
+  }
+}
+
+.sel-popup button {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #faf7ef;
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.sel-popup button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.sel-popup-divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* --- Concealed ruling control: revealed only on top-edge hover ---------- */
+.edge-reveal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 160ms ease;
+  pointer-events: none;
+}
+
+.edge-reveal:hover,
+.edge-reveal[data-open="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.edge-reveal button {
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+  opacity: 0.65;
+}
+
+.edge-reveal button[data-active="true"] {
+  opacity: 1;
+  border-color: var(--ink);
+}
