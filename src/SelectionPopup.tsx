@@ -1,4 +1,11 @@
 import { useEffect, useState, type RefObject } from "react";
+import {
+  Bold,
+  Underline,
+  Strikethrough,
+  AArrowDown,
+  AArrowUp,
+} from "lucide-react";
 
 type Pos = { top: number; left: number } | null;
 
@@ -129,21 +136,21 @@ export default function SelectionPopup({
       // Keep the text selection alive when a button is pressed.
       onMouseDown={(e) => e.preventDefault()}
     >
-      <button title="Bold" onClick={() => exec("bold")} style={{ fontWeight: 700 }}>
-        B
+      <button title="Bold" onClick={() => exec("bold")}>
+        <Bold size={16} strokeWidth={2.25} />
       </button>
-      <button title="Underline" onClick={() => exec("underline")} style={{ textDecoration: "underline" }}>
-        U
+      <button title="Underline" onClick={() => exec("underline")}>
+        <Underline size={16} strokeWidth={2.25} />
       </button>
-      <button title="Strikethrough" onClick={() => exec("strikeThrough")} style={{ textDecoration: "line-through" }}>
-        S
+      <button title="Strikethrough" onClick={() => exec("strikeThrough")}>
+        <Strikethrough size={16} strokeWidth={2.25} />
       </button>
       <span className="sel-popup-divider" />
-      <button title="Normal" onClick={() => applyStyle("normal")} style={{ fontSize: "13px" }}>
-        A
+      <button title="Normal" onClick={() => applyStyle("normal")}>
+        <AArrowDown size={18} strokeWidth={2} />
       </button>
-      <button title="Bigger" onClick={() => applyStyle("bigger")} style={{ fontSize: "17px" }}>
-        A
+      <button title="Bigger" onClick={() => applyStyle("bigger")}>
+        <AArrowUp size={18} strokeWidth={2} />
       </button>
     </div>
   );
