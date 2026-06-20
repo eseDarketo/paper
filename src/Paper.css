@@ -1,16 +1,23 @@
-/* The desk: full-viewport scroll surface that centers the sheet. */
+/* The desk: full-viewport scroll surface that centers the sheet.
+   flex-start keeps the sheet at its own portrait size instead of stretching it. */
 .desk {
   min-height: 100%;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
   padding: 56px 24px 240px;
   overflow-y: auto;
 }
 
-/* The sheet: a bounded paper object, not an infinite canvas. */
+/* The sheet: a bounded portrait page (A4 proportion), grows downward as you
+   write past the bottom (endless-roll model). */
 .paper {
+  position: relative;
   width: var(--paper-width);
   max-width: 100%;
+  min-height: calc(var(--paper-width) * 1.414);
+  display: flex;
+  flex-direction: column;
   background: var(--paper);
   border-radius: 2px;
   box-shadow:
@@ -18,41 +25,98 @@
     0 12px 32px -8px rgba(0, 0, 0, 0.18);
 }
 
-/* The writing surface. Text lives on this grid. */
+/* The writing surface. Text lives on this grid.
+   flex:1 makes it fill the whole sheet so the ruling runs all the way down. */
 .page {
+  flex: 1;
   /* padding-top is a multiple of --line so the first baseline lands on a rule */
-  padding: calc(var(--line) * 2) 56px calc(var(--line) * 4);
+  padding: calc(var(--line) * 2) var(--page-pad-x) calc(var(--line) * 4);
   line-height: var(--line);
   font-size: var(--font-normal);
-  color: var(--ink);
+  color: rgba(43, 39, 34, 0.8);
   outline: none;
   white-space: pre-wrap;
   word-break: break-word;
   caret-color: var(--ink);
 }
 
+/* Metadata header: floats in the top blank band, vertically centered, OFF the
+   grid. Title sits left (higher hierarchy), date sits right (smaller than body
+   text). The first rule below reads as a header divider. */
+.page-meta {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--line) + var(--baseline));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--line) * 0.5);
+  padding: 0 var(--page-pad-x);
+  z-index: 2;
+}
+
+.meta-title,
+.meta-date {
+  outline: none;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+/* Left: title — higher hierarchy than body text. */
+.meta-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: calc(var(--line) * 1.1);
+  color: rgba(43, 39, 34, 0.9);
+  /* nudge the title down to sit visually centered in the band */
+  position: relative;
+  top: 2px;
+}
+
+/* Right: date — smaller than body text, muted. */
+.meta-date {
+  flex: 0 0 auto;
+  text-align: right;
+  font-size: calc(var(--line) * 0.5);
+  letter-spacing: 0.03em;
+  color: rgba(43, 39, 34, 0.7);
+}
+
+
 /* --- Ruling modes ------------------------------------------------------- */
+/* Each mode layers a solid paper band over the top two lines, so the ruling
+   visually begins at the first writing line instead of crowding the top edge
+   (a clean top margin, like a real notebook). The band height matches the
+   page's top padding (--line × 2). */
 
 /* A 1px rule sitting at the baseline within every line cell. */
 .page[data-ruling="ruled"] {
-  background-image: repeating-linear-gradient(
-    to bottom,
-    var(--rule) 0,
-    var(--rule) 1px,
-    transparent 1px,
-    transparent var(--line)
-  );
-  background-position: 0 var(--baseline);
+  background-image:
+    linear-gradient(var(--paper), var(--paper)),
+    repeating-linear-gradient(
+      to bottom,
+      var(--rule) 0,
+      var(--rule) 1px,
+      transparent 1px,
+      transparent var(--line)
+    );
+  background-repeat: no-repeat, repeat;
+  background-size: 100% var(--line), 100% auto;
+  background-position: 0 0, 0 var(--baseline);
 }
 
 /* Dot grid: dots sitting on the baseline, spaced horizontally. */
 .page[data-ruling="dotted"] {
-  background-image: radial-gradient(
-    var(--rule) 1.2px,
-    transparent 1.4px
-  );
-  background-size: var(--line) var(--line);
-  background-position: 0 var(--baseline);
+  background-image:
+    linear-gradient(var(--paper), var(--paper)),
+    radial-gradient(var(--rule) 1.2px, transparent 1.4px);
+  background-repeat: no-repeat, repeat;
+  background-size: 100% var(--line), var(--line) var(--line);
+  background-position: 0 0, 0 var(--baseline);
 }
 
 .page[data-ruling="blank"] {
@@ -120,7 +184,9 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* --- Concealed ruling control: revealed only on top-edge hover ---------- */
+/* --- Concealed ruling control: revealed only on top-edge hover ----------
+   The strip itself stays interactive so it can catch the hover; the buttons
+   are only clickable once the strip is actually revealed. */
 .edge-reveal {
   position: fixed;
   top: 0;
@@ -133,12 +199,19 @@
   gap: 6px;
   opacity: 0;
   transition: opacity 160ms ease;
-  pointer-events: none;
 }
 
 .edge-reveal:hover,
 .edge-reveal[data-open="true"] {
   opacity: 1;
+}
+
+.edge-reveal button {
+  pointer-events: none;
+}
+
+.edge-reveal:hover button,
+.edge-reveal[data-open="true"] button {
   pointer-events: auto;
 }
 
@@ -159,4 +232,11 @@
 .edge-reveal button[data-active="true"] {
   opacity: 1;
   border-color: var(--ink);
+}
+
+.edge-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--rule);
 }
