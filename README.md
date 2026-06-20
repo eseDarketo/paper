@@ -1,73 +1,52 @@
-# React + TypeScript + Vite
+# Paper
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A minimal text editor that tries to recreate, as faithfully as possible, the experience of writing on a physical notebook.
 
-Currently, two official plugins are available:
+Conventional editors are dense with toolbars, panels, counts and suggestions — and that density is exactly what kills the calm of writing. Paper treats the *absence* of interface as the core feature. At first glance you see a sheet of paper and nothing else.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Principles
 
-## React Compiler
+- **Paper first.** On open, the screen is a sheet — ruled, dotted, or blank — and nothing else. No chrome until you invoke it.
+- **Text lives on the lines.** The baseline grid is real; characters sit *on* the rule like ink. Everything derives from a single line-height unit.
+- **Formatting is rare and contextual.** No persistent formatting UI — select text and a tiny popup appears.
+- **Configuration is concealed.** Controls stay invisible until summoned.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+See [`SPEC.md`](./SPEC.md) for the full design rationale.
 
-## Expanding the ESLint configuration
+## Features so far
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Warm paper sheet with switchable ruling: **ruled · dotted · blank**
+- Text locked to a baseline grid, with a clean notebook-style top margin
+- A metadata header that floats off the grid — **title** (left) and **date** (right)
+- Two body text styles, both exactly one line tall — **Normal** and **Bigger**
+- A selection popup for **bold · underline · strikethrough** and style assignment
+- **Zoom / fit-to-screen**, with the whole sheet scaling proportionally
+- Silent autosave to local storage — no save button, ever
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Controls
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+| Action | How |
+|---|---|
+| Bold / Underline / Strikethrough | Select text → popup |
+| Normal / Bigger style | Select text → popup (A↓ / A↑) |
+| Change ruling / zoom | Hover the top edge of the window |
+| Zoom in / out | `⌘ =` / `⌘ -`, or `⌘ + scroll` |
+| Fit to screen | `⌘ 0` |
+| Title / Date | Click the top blank band |
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Running locally
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Then open the printed local URL.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Tech
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Web-first (Vite + React + TypeScript), designed to be wrapped as a desktop app (Tauri) later without a rewrite. No backend — everything is local.
+
+## Status
+
+Early and evolving. The core writing experience works; paper-model (endless roll vs discrete pages), a concealed settings surface, and a desktop build are on the roadmap.
